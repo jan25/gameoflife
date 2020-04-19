@@ -2,6 +2,8 @@
 
 Conway's Game of Life implemented using React and p5.
 
+See it here jan25.github.io/gameoflife
+
 By default the universe shows Gosper glider pattern, which is a pattern generating gliders indefinitely. And the grid is interactive to create your own patterns.
 
 ```

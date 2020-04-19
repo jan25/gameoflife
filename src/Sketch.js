@@ -6,7 +6,7 @@ import "./Sketch.css";
 
 const GAME_HEIGHT_PER = 1;
 const GAME_WIDTH_PER = 1;
-const FRAME_RATE = 5;
+const FRAME_RATE = 10;
 const CELL_SIZE = 15;
 const CELL_PADDING = CELL_SIZE / 10;
 
