@@ -1,13 +1,20 @@
 import React, { Component } from "react";
 import p5 from "p5";
 import _ from "lodash";
+import { getGosperGlider } from "./scripts/GosperGlider";
 import "./Sketch.css";
 
-const GAME_HEIGHT_PER = 0.8;
+const GAME_HEIGHT_PER = 1;
 const GAME_WIDTH_PER = 1;
-const FRAME_RATE = 7;
+const FRAME_RATE = 5;
 const CELL_SIZE = 15;
 const CELL_PADDING = CELL_SIZE / 10;
+
+const ALIVE_COLOR = "#ffff99";
+const CANVAS_BG = "#808080";
+const GRID_LINE_COLOR = "#d9d9d9";
+
+let maybeMobileSite = false;
 
 class Sketch extends Component {
   sketch = (p) => {
@@ -15,8 +22,8 @@ class Sketch extends Component {
 
     p.setup = () => {
       this.ctx.createCanvas(this.gameAreaWidth, this.gameAreaHeight);
-      this.ctx.rect(0, 0, this.gameAreaWidth, this.gameAreaHeight);
       this.ctx.frameRate(FRAME_RATE);
+      this.ctx.background(CANVAS_BG);
       this.drawGrid();
       this.setupRandomGrid();
     };
@@ -27,6 +34,19 @@ class Sketch extends Component {
         this.nextGeneration();
       }
     };
+
+    // Mobile site events
+
+    if (maybeMobileSite) {
+      p.touchStarted = () => {
+        this.paused = !this.paused;
+        if (this.paused) this.ctx.noLoop();
+        else this.ctx.loop();
+        return false;
+      };
+    }
+
+    // Desktop events
 
     p.keyPressed = () => {
       if (this.ctx.keyCode === 32) {
@@ -73,20 +93,20 @@ class Sketch extends Component {
     const gameAreaNode = this.gameAreaRef.current.getBoundingClientRect();
     this.gameAreaHeight = gameAreaNode.height * GAME_HEIGHT_PER;
     this.gameAreaWidth = gameAreaNode.width * GAME_WIDTH_PER;
+    if (this.gameAreaWidth < 500) {
+      maybeMobileSite = true;
+    }
     this.rows = parseInt(this.gameAreaHeight / CELL_SIZE) + 1;
     this.cols = parseInt(this.gameAreaWidth / CELL_SIZE) + 1;
     this.p5 = new p5(this.sketch, this.gameAreaRef.current);
   }
 
   render() {
-    return (
-      <div id="sketch" ref={this.gameAreaRef}>
-        <h2>Sketch</h2>
-      </div>
-    );
+    return <div id="sketch" ref={this.gameAreaRef}></div>;
   }
 
   drawGrid() {
+    this.ctx.stroke(GRID_LINE_COLOR);
     for (let i = 0; i < this.rows; ++i) {
       for (let j = 0; j < this.cols; ++j) {
         this.ctx.line(
@@ -103,14 +123,18 @@ class Sketch extends Component {
         );
       }
     }
+    this.ctx.stroke("black");
   }
 
   setupRandomGrid() {
-    this.activeCells.clear();
-    for (let i = 0; i < this.rows + 4; ++i) {
-      for (let j = 0; j < this.cols + 4; ++j) {
-        if (_.random(0, 1) === 1) {
-          this.activeCells.add(this.toHash(i, j));
+    let gg = getGosperGlider();
+    if (maybeMobileSite) {
+      gg = _.zip(...gg);
+    }
+    for (let i = 0; i < gg.length; ++i) {
+      for (let j = 0; j < gg[i].length; ++j) {
+        if (gg[i][j]) {
+          this.activeCells.add(this.toHash(i + 4, j + 4));
         }
       }
     }
@@ -129,7 +153,7 @@ class Sketch extends Component {
     for (let i = 2; i < this.rows + 2; ++i) {
       for (let j = 2; j < this.cols + 2; ++j) {
         if (this.activeCells.has(this.toHash(i, j))) {
-          this.ctx.fill(51);
+          this.ctx.fill(ALIVE_COLOR);
           this.ctx.rect(
             (j - 2) * CELL_SIZE + CELL_PADDING,
             (i - 2) * CELL_SIZE + CELL_PADDING,
@@ -138,7 +162,7 @@ class Sketch extends Component {
           );
           this.ctx.fill("white");
         } else {
-          this.ctx.fill("white");
+          this.ctx.fill(CANVAS_BG);
           this.ctx.rect(
             (j - 2) * CELL_SIZE + CELL_PADDING,
             (i - 2) * CELL_SIZE + CELL_PADDING,
@@ -195,7 +219,8 @@ class Sketch extends Component {
   }
 
   makeAlive(row, col) {
-    this.activeCells.add(this.toHash(row + 2, col + 2));
+    let h = this.toHash(row + 2, col + 2);
+    this.activeCells.add(h);
   }
 }
 
