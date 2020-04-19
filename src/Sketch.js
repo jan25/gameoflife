@@ -128,13 +128,15 @@ class Sketch extends Component {
 
   setupRandomGrid() {
     let gg = getGosperGlider();
+    let OFFSET = 15;
     if (maybeMobileSite) {
       gg = _.zip(...gg);
+      OFFSET = 4;
     }
     for (let i = 0; i < gg.length; ++i) {
       for (let j = 0; j < gg[i].length; ++j) {
         if (gg[i][j]) {
-          this.activeCells.add(this.toHash(i + 4, j + 4));
+          this.activeCells.add(this.toHash(i + OFFSET, j + OFFSET));
         }
       }
     }
