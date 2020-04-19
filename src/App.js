@@ -10,7 +10,6 @@ class App extends Component {
   render() {
     return (
       <div id="app">
-        <h2>Game of Life</h2>
         <Sketch />
       </div>
     );

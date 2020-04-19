@@ -3,12 +3,10 @@ import p5 from "p5";
 import _ from "lodash";
 import "./Sketch.css";
 
+const GAME_HEIGHT_PER = 0.8;
+const GAME_WIDTH_PER = 1;
 const FRAME_RATE = 7;
 const CELL_SIZE = 15;
-const ROWS = 40;
-const COLS = 40;
-const CANVAS_HEIGHT = ROWS * CELL_SIZE;
-const CANVAS_WIDTH = COLS * CELL_SIZE;
 const CELL_PADDING = CELL_SIZE / 10;
 
 class Sketch extends Component {
@@ -16,8 +14,8 @@ class Sketch extends Component {
     this.ctx = p;
 
     p.setup = () => {
-      this.ctx.createCanvas(CANVAS_WIDTH, CANVAS_HEIGHT);
-      this.ctx.rect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+      this.ctx.createCanvas(this.gameAreaWidth, this.gameAreaHeight);
+      this.ctx.rect(0, 0, this.gameAreaWidth, this.gameAreaHeight);
       this.ctx.frameRate(FRAME_RATE);
       this.drawGrid();
       this.setupRandomGrid();
@@ -41,8 +39,8 @@ class Sketch extends Component {
 
     p.mouseDragged = () => {
       if (this.paused) {
-        let row = parseInt(this.ctx.mouseX / CELL_SIZE);
-        let col = parseInt(this.ctx.mouseY / CELL_SIZE);
+        let row = parseInt(this.ctx.mouseY / CELL_SIZE);
+        let col = parseInt(this.ctx.mouseX / CELL_SIZE);
         this.makeAlive(row, col);
         this.ctx.redraw();
       }
@@ -51,8 +49,8 @@ class Sketch extends Component {
 
     p.mouseClicked = () => {
       if (this.paused) {
-        let row = parseInt(this.ctx.mouseX / CELL_SIZE);
-        let col = parseInt(this.ctx.mouseY / CELL_SIZE);
+        let row = parseInt(this.ctx.mouseY / CELL_SIZE);
+        let col = parseInt(this.ctx.mouseX / CELL_SIZE);
         this.makeAlive(row, col);
         this.ctx.redraw();
       }
@@ -63,46 +61,52 @@ class Sketch extends Component {
   constructor(props) {
     super(props);
     this.state = {};
-    this.myRef = React.createRef();
+    this.gameAreaRef = React.createRef();
 
     this.ctx = null;
     this.cells = [[]];
     this.paused = false;
+    this.rows = this.cols = 0;
   }
 
   componentDidMount() {
-    this.p5 = new p5(this.sketch, this.myRef.current);
+    const gameAreaNode = this.gameAreaRef.current.getBoundingClientRect();
+    this.gameAreaHeight = gameAreaNode.height * GAME_HEIGHT_PER;
+    this.gameAreaWidth = gameAreaNode.width * GAME_WIDTH_PER;
+    this.rows = parseInt(this.gameAreaHeight / CELL_SIZE) + 1;
+    this.cols = parseInt(this.gameAreaWidth / CELL_SIZE) + 1;
+    this.p5 = new p5(this.sketch, this.gameAreaRef.current);
   }
 
   render() {
     return (
-      <div id="sketch" ref={this.myRef}>
+      <div id="sketch" ref={this.gameAreaRef}>
         <h2>Sketch</h2>
       </div>
     );
   }
 
   drawGrid() {
-    for (let i = 0; i < ROWS; ++i) {
-      for (let j = 0; j < COLS; ++j) {
+    for (let i = 0; i < this.rows; ++i) {
+      for (let j = 0; j < this.cols; ++j) {
         this.ctx.line(
-          i * CELL_SIZE,
           j * CELL_SIZE,
           i * CELL_SIZE,
-          (j + 1) * CELL_SIZE
+          j * CELL_SIZE,
+          (i + 1) * CELL_SIZE
         );
         this.ctx.line(
-          i * CELL_SIZE,
           j * CELL_SIZE,
-          (i + 1) * CELL_SIZE,
-          j * CELL_SIZE
+          i * CELL_SIZE,
+          (j + 1) * CELL_SIZE,
+          i * CELL_SIZE
         );
       }
     }
   }
 
   setupRandomGrid() {
-    let [x, y] = [ROWS / 2, COLS / 4];
+    let [x, y] = [this.rows / 2, this.cols / 2];
     let gilder = [
       [x, y - 1],
       [x + 1, y],
@@ -111,10 +115,11 @@ class Sketch extends Component {
       [x + 1, y + 1],
     ];
     this.cells = [];
-    for (let i = 0; i < ROWS + 4; ++i) {
+    for (let i = 0; i < this.rows + 4; ++i) {
       let row = [];
-      for (let j = 0; j < COLS + 4; ++j) {
-        row.push(_.findIndex(gilder, (c) => c[0] === i && c[1] === j) !== -1);
+      for (let j = 0; j < this.cols + 4; ++j) {
+        // row.push(_.findIndex(gilder, (c) => c[0] === i && c[1] === j) !== -1);
+        row.push(_.random(0, 1) === 1);
       }
       this.cells.push(row);
     }
@@ -122,13 +127,13 @@ class Sketch extends Component {
 
   fillCells() {
     this.ctx.noStroke();
-    for (let i = 2; i < ROWS + 2; ++i) {
-      for (let j = 2; j < COLS + 2; ++j) {
+    for (let i = 2; i < this.rows + 2; ++i) {
+      for (let j = 2; j < this.cols + 2; ++j) {
         if (this.cells[i][j]) {
           this.ctx.fill(51);
           this.ctx.rect(
-            i * CELL_SIZE + CELL_PADDING,
-            j * CELL_SIZE + CELL_PADDING,
+            (j - 2) * CELL_SIZE + CELL_PADDING,
+            (i - 2) * CELL_SIZE + CELL_PADDING,
             CELL_SIZE - 2 * CELL_PADDING,
             CELL_SIZE - 2 * CELL_PADDING
           );
@@ -136,8 +141,8 @@ class Sketch extends Component {
         } else {
           this.ctx.fill("white");
           this.ctx.rect(
-            i * CELL_SIZE + CELL_PADDING,
-            j * CELL_SIZE + CELL_PADDING,
+            (j - 2) * CELL_SIZE + CELL_PADDING,
+            (i - 2) * CELL_SIZE + CELL_PADDING,
             CELL_SIZE - 2 * CELL_PADDING,
             CELL_SIZE - 2 * CELL_PADDING
           );
@@ -151,9 +156,9 @@ class Sketch extends Component {
 
   nextGeneration() {
     let newCells = [];
-    for (let i = 0; i < ROWS + 4; ++i) {
+    for (let i = 0; i < this.rows + 4; ++i) {
       let row = [];
-      for (let j = 0; j < COLS + 4; ++j) {
+      for (let j = 0; j < this.cols + 4; ++j) {
         row.push(this.isAlive(i, j));
       }
       newCells.push(row);
@@ -177,7 +182,12 @@ class Sketch extends Component {
         if (dx === 0 && dy === 0) continue;
         let nrow = row + dx;
         let ncol = col + dy;
-        if (nrow < 0 || ncol < 0 || nrow >= ROWS + 4 || ncol >= COLS + 4)
+        if (
+          nrow < 0 ||
+          ncol < 0 ||
+          nrow >= this.rows + 4 ||
+          ncol >= this.cols + 4
+        )
           continue;
         if (this.cells[nrow][ncol]) n++;
       }
@@ -186,8 +196,7 @@ class Sketch extends Component {
   }
 
   makeAlive(row, col) {
-    console.log("makeAlive", row, col);
-    this.cells[row][col] = true;
+    this.cells[row + 2][col + 2] = true;
   }
 }
 
