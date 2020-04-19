@@ -64,7 +64,7 @@ class Sketch extends Component {
     this.gameAreaRef = React.createRef();
 
     this.ctx = null;
-    this.cells = [[]];
+    this.activeCells = new Set();
     this.paused = false;
     this.rows = this.cols = 0;
   }
@@ -106,30 +106,29 @@ class Sketch extends Component {
   }
 
   setupRandomGrid() {
-    let [x, y] = [this.rows / 2, this.cols / 2];
-    let gilder = [
-      [x, y - 1],
-      [x + 1, y],
-      [x - 1, y + 1],
-      [x, y + 1],
-      [x + 1, y + 1],
-    ];
-    this.cells = [];
+    this.activeCells.clear();
     for (let i = 0; i < this.rows + 4; ++i) {
-      let row = [];
       for (let j = 0; j < this.cols + 4; ++j) {
-        // row.push(_.findIndex(gilder, (c) => c[0] === i && c[1] === j) !== -1);
-        row.push(_.random(0, 1) === 1);
+        if (_.random(0, 1) === 1) {
+          this.activeCells.add(this.toHash(i, j));
+        }
       }
-      this.cells.push(row);
     }
+  }
+
+  toHash(row, col) {
+    return row * this.cols + col;
+  }
+
+  fromHash(h) {
+    return [parseInt(h / this.cols), h % this.cols];
   }
 
   fillCells() {
     this.ctx.noStroke();
     for (let i = 2; i < this.rows + 2; ++i) {
       for (let j = 2; j < this.cols + 2; ++j) {
-        if (this.cells[i][j]) {
+        if (this.activeCells.has(this.toHash(i, j))) {
           this.ctx.fill(51);
           this.ctx.rect(
             (j - 2) * CELL_SIZE + CELL_PADDING,
@@ -155,20 +154,20 @@ class Sketch extends Component {
   }
 
   nextGeneration() {
-    let newCells = [];
+    let newAlive = new Set();
     for (let i = 0; i < this.rows + 4; ++i) {
-      let row = [];
       for (let j = 0; j < this.cols + 4; ++j) {
-        row.push(this.isAlive(i, j));
+        if (this.isAlive(i, j)) {
+          newAlive.add(this.toHash(i, j));
+        }
       }
-      newCells.push(row);
     }
-    this.cells = newCells;
+    this.activeCells = newAlive;
   }
 
   isAlive(row, col) {
     let n = this.countAliveNeighbors(row, col);
-    if (this.cells[row][col]) {
+    if (this.activeCells.has(this.toHash(row, col))) {
       return n > 1 && n < 4;
     } else {
       return n === 3;
@@ -189,14 +188,14 @@ class Sketch extends Component {
           ncol >= this.cols + 4
         )
           continue;
-        if (this.cells[nrow][ncol]) n++;
+        if (this.activeCells.has(this.toHash(nrow, ncol))) n++;
       }
     }
     return n;
   }
 
   makeAlive(row, col) {
-    this.cells[row + 2][col + 2] = true;
+    this.activeCells.add(this.toHash(row + 2, col + 2));
   }
 }
 
